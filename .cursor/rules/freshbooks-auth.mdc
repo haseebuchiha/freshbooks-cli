@@ -1,0 +1,45 @@
+---
+description: FreshBooks OAuth authentication flow
+globs: 
+alwaysApply: true
+---
+
+# FreshBooks OAuth Authentication
+
+## Critical: Do NOT use localhost redirect URIs
+
+FreshBooks rejects `http://localhost:*` redirect URIs even when correctly registered in the Developer Portal. This is a known issue documented in `guardrails.md`.
+
+## The working flow uses `urn:ietf:wg:oauth:2.0:oob`
+
+This is an out-of-band OAuth2 redirect URI. Instead of redirecting the browser to a local server, FreshBooks displays the authorization code directly on a web page. The user copies it and pastes it into the CLI.
+
+### How to authenticate
+
+```bash
+freshbooks auth login \
+  --client-id <FRESHBOOKS_CLIENT_ID> \
+  --client-secret <FRESHBOOKS_CLIENT_SECRET> \
+  --manual
+```
+
+The `--manual` flag triggers the OOB flow:
+1. CLI opens the browser to FreshBooks authorization URL with `redirect_uri=urn:ietf:wg:oauth:2.0:oob`
+2. User logs in and authorizes the app in the browser
+3. FreshBooks displays the authorization code on screen
+4. User copies the code and pastes it into the CLI terminal prompt
+5. CLI exchanges the code for tokens and saves them to config
+
+After first login, credentials are stored. All subsequent commands (`invoices list`, `auth refresh`, etc.) work without any flags.
+
+### Do NOT attempt
+
+- Do not start a local HTTP server for OAuth callbacks
+- Do not use `http://localhost:8315/callback` as redirect URI
+- Do not use the automatic (non-manual) flow unless the localhost redirect issue is resolved
+
+### Reference files
+
+- `guardrails.md` -- Full list of implementation pitfalls
+- `src/auth/oauth.ts` -- OAuth flow implementation
+- `src/auth/config.ts` -- Credential and token storage
